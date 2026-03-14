@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import dbConnect from "@/lib/db";
-import Task, { TaskStatus } from "@/models/Task";
+import Task, { TaskStatus, TaskPriority } from "@/models/Task";
 import { encrypt, decrypt } from "@/lib/crypto";
 import { getAuthSession } from "@/middleware/auth";
 import { taskSchema } from "@/utils/validation";
@@ -41,7 +41,13 @@ export async function PUT(
         if (validatedData.priority) {
             task.priority = validatedData.priority as TaskPriority;
         }
-        task.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : undefined;
+        
+        // Handle dueDate: null, undefined or valid date string
+        if (validatedData.dueDate && validatedData.dueDate.trim() !== "") {
+            task.dueDate = new Date(validatedData.dueDate);
+        } else {
+            task.dueDate = undefined;
+        }
         
         await task.save();
 
