@@ -74,14 +74,14 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) => {
         <div className="flex gap-4">
           <button
             onClick={() => onEdit(task)}
-            className="text-indigo-400 hover:text-indigo-300 font-bold uppercase tracking-wider"
+            className="text-indigo-400 hover:text-indigo-300 hover:cursor-pointer font-bold uppercase tracking-wider"
             aria-label={`Edit task ${task.title}`}
           >
             Edit
           </button>
           <button
             onClick={() => onDelete(task._id)}
-            className="text-red-400 hover:text-red-300 font-bold uppercase tracking-wider"
+            className="text-red-400 hover:text-red-300 hover:cursor-pointer font-bold uppercase tracking-wider"
             aria-label={`Delete task ${task.title}`}
           >
             Delete

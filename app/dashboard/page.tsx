@@ -26,6 +26,7 @@ interface TaskFormData {
 export default function DashboardPage() {
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [userName, setUserName] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -69,9 +70,24 @@ export default function DashboardPage() {
     }
   }, [page, search, status, priority, sortBy, sortOrder, router]);
 
+  const fetchUser = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setUserName(data.data.name);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch user", err);
+    }
+  }, []);
+
   useEffect(() => {
+    fetchUser();
     fetchTasks();
-  }, [fetchTasks]);
+  }, [fetchTasks, fetchUser]);
 
   const handleCreateTask = async (formData: TaskFormData) => {
     try {
@@ -139,12 +155,12 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#333] text-white font-sans">
       <nav className="bg-[#444] border-b border-[#555] py-4 px-6 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-black uppercase tracking-tighter text-indigo-400">
-            Task Manager
+          <h1 className="text-lg font-bold text-indigo-400">
+            {userName ? `Welcome, ${userName}` : "Welcome"}
           </h1>
           <button
             onClick={handleLogout}
-            className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+            className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-red-400 hover:cursor-pointer transition-colors"
           >
             Logout
           </button>
@@ -161,14 +177,14 @@ export default function DashboardPage() {
                 placeholder="Search by title..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                className="w-full bg-[#333] border duration-300 border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
               />
             </div>
             <div className="flex flex-wrap gap-3">
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white duration-300 focus:border-indigo-500 outline-none"
               >
                 <option value="">All Status</option>
                 <option value="pending">Pending</option>
@@ -178,7 +194,7 @@ export default function DashboardPage() {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                className="bg-[#333] border border-[#555] duration-300 rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
               >
                 <option value="">All Priority</option>
                 <option value="low">Low</option>
@@ -188,7 +204,7 @@ export default function DashboardPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                className="bg-[#333] border border-[#555] duration-300 rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
               >
                 <option value="createdAt">Sort by Date</option>
                 <option value="dueDate">Sort by Due Date</option>
@@ -196,7 +212,7 @@ export default function DashboardPage() {
               </select>
               <button
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white hover:bg-[#555] transition-colors"
+                className="bg-[#333] border border-[#555] duration-300 rounded py-2 px-3 text-sm text-white hover:bg-[#555] transition-colors"
               >
                 {sortOrder === "asc" ? "↑" : "↓"}
               </button>
@@ -205,7 +221,7 @@ export default function DashboardPage() {
           <div className="flex justify-end pt-2 border-t border-[#555]">
             <button
               onClick={() => setIsFormOpen(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest py-2.5 px-6 rounded shadow-sm transition-all"
+              className="bg-indigo-600 hover:bg-indigo-700 hover:shadow-xl text-white text-xs font-black uppercase tracking-widest py-2.5 px-6 hover:cursor-pointer rounded shadow-sm transition-all"
             >
               Add New Task
             </button>
@@ -214,7 +230,7 @@ export default function DashboardPage() {
 
         {/* Task Form Modal */}
         {(isFormOpen || editingTask) && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 overflow-y-auto">
             <TaskForm
               initialData={editingTask || undefined}
               onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
