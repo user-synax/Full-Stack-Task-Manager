@@ -17,7 +17,7 @@ export function handleError(error: unknown) {
 
   if (error instanceof Error) {
     // Check for specific error types (e.g., Mongoose unique constraint)
-    if ((error as any).code === 11000) {
+    if ((error as { code?: number }).code === 11000) {
       return NextResponse.json(
         { success: false, message: 'Email already exists' },
         { status: 400 }
@@ -36,7 +36,7 @@ export function handleError(error: unknown) {
   );
 }
 
-export function successResponse(data: any, status = 200) {
+export function successResponse<T = unknown>(data: T, status = 200) {
   return NextResponse.json(
     {
       success: true,

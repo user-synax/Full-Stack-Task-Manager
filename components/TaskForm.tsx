@@ -8,8 +8,16 @@ interface TaskFormProps {
     title: string;
     description: string;
     status: 'pending' | 'in-progress' | 'completed';
+    priority?: 'low' | 'medium' | 'high';
+    dueDate?: string;
   };
-  onSubmit: (data: any) => Promise<void>;
+  onSubmit: (data: {
+    title: string;
+    description: string;
+    status: 'pending' | 'in-progress' | 'completed';
+    priority: 'low' | 'medium' | 'high';
+    dueDate: string;
+  }) => Promise<void>;
   onCancel: () => void;
 }
 
@@ -18,6 +26,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
     title: initialData?.title || '',
     description: initialData?.description || '',
     status: initialData?.status || 'pending',
+    priority: initialData?.priority || 'medium',
+    dueDate: initialData?.dueDate ? new Date(initialData.dueDate).toISOString().split('T')[0] : '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -33,28 +43,28 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
     setError('');
     try {
       await onSubmit(formData);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-900 shadow-2xl rounded-2xl p-8 border border-gray-800">
-      <h2 className="text-2xl font-bold mb-8 text-white">
+    <form onSubmit={handleSubmit} className="bg-[#444] rounded-lg p-6 border border-[#555] shadow-lg max-w-lg w-full">
+      <h2 className="text-xl font-bold mb-6 text-white border-b border-[#555] pb-2">
         {initialData?._id ? 'Edit Task' : 'New Task'}
       </h2>
       
       {error && (
-        <div className="bg-red-500/10 text-red-400 p-4 rounded-lg mb-6 text-sm border border-red-500/20">
+        <div className="bg-red-900/50 text-red-200 p-3 rounded mb-6 text-sm border border-red-700">
           {error}
         </div>
       )}
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-400 mb-2">
+          <label htmlFor="title" className="block text-xs font-bold uppercase text-gray-400 mb-1">
             Title
           </label>
           <input
@@ -64,57 +74,90 @@ const TaskForm: React.FC<TaskFormProps> = ({ initialData, onSubmit, onCancel }) 
             value={formData.title}
             onChange={handleChange}
             required
-            className="block w-full bg-gray-800 border border-gray-700 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-            placeholder="What needs to be done?"
+            className="block w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-white focus:border-indigo-500 outline-none"
+            placeholder="e.g. Finish project documentation"
           />
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-400 mb-2">
+          <label htmlFor="description" className="block text-xs font-bold uppercase text-gray-400 mb-1">
             Description
           </label>
           <textarea
             id="description"
             name="description"
-            rows={4}
+            rows={3}
             value={formData.description}
             onChange={handleChange}
             required
-            className="block w-full bg-gray-800 border border-gray-700 rounded-lg py-3 px-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            className="block w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-white focus:border-indigo-500 outline-none"
             placeholder="Add some details..."
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="status" className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              className="block w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-white focus:border-indigo-500 outline-none"
+            >
+              <option value="pending">Pending</option>
+              <option value="in-progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="priority" className="block text-xs font-bold uppercase text-gray-400 mb-1">
+              Priority
+            </label>
+            <select
+              id="priority"
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              className="block w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-white focus:border-indigo-500 outline-none"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+        </div>
+
         <div>
-          <label htmlFor="status" className="block text-sm font-medium text-gray-400 mb-2">
-            Status
+          <label htmlFor="dueDate" className="block text-xs font-bold uppercase text-gray-400 mb-1">
+            Due Date (Optional)
           </label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
+          <input
+            type="date"
+            id="dueDate"
+            name="dueDate"
+            value={formData.dueDate}
             onChange={handleChange}
-            className="block w-full bg-gray-800 border border-gray-700 rounded-lg py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
-          >
-            <option value="pending">Pending</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
+            className="block w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-white focus:border-indigo-500 outline-none [color-scheme:dark]"
+          />
         </div>
       </div>
 
-      <div className="mt-10 flex justify-end space-x-4">
+      <div className="mt-8 flex justify-end gap-3">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
+          className="px-4 py-2 border border-[#555] rounded text-sm font-bold uppercase text-gray-400 hover:text-white transition-colors"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2.5 bg-indigo-600 border border-transparent rounded-lg text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 focus:ring-offset-gray-900 disabled:opacity-50 transition-all shadow-lg shadow-indigo-600/20"
+          className="px-6 py-2 bg-indigo-600 rounded text-sm font-bold uppercase text-white hover:bg-indigo-700 disabled:opacity-50 transition-colors shadow-sm"
         >
           {loading ? 'Saving...' : 'Save Task'}
         </button>

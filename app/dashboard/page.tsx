@@ -1,214 +1,276 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import TaskCard from '@/components/TaskCard';
-import TaskForm from '@/components/TaskForm';
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import TaskCard from "@/components/TaskCard";
+import TaskForm from "@/components/TaskForm";
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState(null);
-  
-  // Filter/Search states
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+    const router = useRouter();
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingTask, setEditingTask] = useState(null);
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true);
-    try {
-      const query = new URLSearchParams({
-        page: page.toString(),
-        limit: '10',
-        ...(search && { search }),
-        ...(status && { status }),
-      });
+    // Filter/Search/Sort states
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("");
+    const [priority, setPriority] = useState("");
+    const [sortBy, setSortBy] = useState("createdAt");
+    const [sortOrder, setSortOrder] = useState("desc");
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
-      const res = await fetch(`/api/tasks?${query}`);
-      if (res.status === 401) {
-        router.push('/login');
-        return;
-      }
-      const data = await res.json();
-      if (data.success) {
-        setTasks(data.data.tasks);
-        setTotalPages(data.data.pagination.totalPages);
-      }
-    } catch (err) {
-      console.error('Failed to fetch tasks', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search, status, router]);
+    const fetchTasks = useCallback(async () => {
+        setLoading(true);
+        try {
+            const query = new URLSearchParams({
+                page: page.toString(),
+                limit: "9",
+                ...(search && { search }),
+                ...(status && { status }),
+                ...(priority && { priority }),
+                sortBy,
+                sortOrder,
+            });
 
-  useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+            const res = await fetch(`/api/tasks?${query}`);
+            if (res.status === 401) {
+                router.push("/login");
+                return;
+            }
+            const data = await res.json();
+            if (data.success) {
+                setTasks(data.data.tasks);
+                setTotalPages(data.data.pagination.totalPages);
+            }
+        } catch (err) {
+            console.error("Failed to fetch tasks", err);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, search, status, priority, sortBy, sortOrder, router]);
 
-  const handleCreateTask = async (formData: Record<string, unknown>) => {
-    const res = await fetch('/api/tasks', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setIsFormOpen(false);
-      fetchTasks();
-    } else {
-      throw new Error(data.message);
-    }
-  };
-
-  const handleUpdateTask = async (formData: Record<string, unknown>) => {
-    if (!editingTask) return;
-    const res = await fetch(`/api/tasks/${(editingTask as { _id: string })._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
-    });
-    const data = await res.json();
-    if (data.success) {
-      setEditingTask(null);
-      fetchTasks();
-    } else {
-      throw new Error(data.message);
-    }
-  };
-
-  const handleDeleteTask = async (id: string) => {
-    if (confirm('Are you sure you want to delete this task?')) {
-      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
+    useEffect(() => {
         fetchTasks();
-      }
-    }
-  };
+    }, [fetchTasks]);
 
-  const handleLogout = async () => {
-    // In a real app, you'd call an API to clear the cookie
-    // For simplicity here, we'll just redirect and assume the token is invalid or cleared
-    document.cookie = 'token=; Max-Age=0; path=/;';
-    router.push('/login');
-  };
+    const handleCreateTask = async (formData: {
+        title: string;
+        description?: string;
+        status: "pending" | "in-progress" | "completed";
+        priority: "low" | "medium" | "high";
+        dueDate?: string;
+    }) => {
+        const res = await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+        if (data.success) {
+            setIsFormOpen(false);
+            fetchTasks();
+        } else {
+            throw new Error(data.message);
+        }
+    };
 
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-indigo-600">TaskManager</h1>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={handleLogout}
-                className="ml-4 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+    const handleUpdateTask = async (formData: {
+        title: string;
+        description?: string;
+        status: "pending" | "in-progress" | "completed";
+        priority: "low" | "medium" | "high";
+        dueDate?: string;
+    }) => {
+        if (!editingTask) throw new Error("No task selected for update");
+        const res = await fetch(`/api/tasks/${(editingTask as { _id: string })._id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData),
+        });
+        const data = await res.json();
+        if (data.success) {
+            setEditingTask(null);
+            fetchTasks();
+        } else {
+            throw new Error(data.message);
+        }
+    };
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <div className="flex-1 flex gap-4">
-              <input
-                type="text"
-                placeholder="Search tasks..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="block w-full max-w-xs border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-              />
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="block border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-              >
-                <option value="">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="in-progress">In Progress</option>
-                <option value="completed">Completed</option>
-              </select>
-            </div>
-            <button
-              onClick={() => setIsFormOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              Add New Task
-            </button>
-          </div>
+    const handleDeleteTask = async (id: string) => {
+        if (confirm("Are you sure you want to delete this task?")) {
+            const res = await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (data.success) {
+                fetchTasks();
+            }
+        }
+    };
 
-          {(isFormOpen || editingTask) && (
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
-              <div className="max-w-md w-full">
-                <TaskForm
-                  initialData={editingTask || undefined}
-                  onSubmit={editingTask ? handleUpdateTask : handleCreateTask}
-                  onCancel={() => {
-                    setIsFormOpen(false);
-                    setEditingTask(null);
-                  }}
-                />
-              </div>
-            </div>
-          )}
+    const handleLogout = async () => {
+        document.cookie = "token=; Max-Age=0; path=/;";
+        router.push("/login");
+    };
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <p className="mt-2 text-gray-500">Loading tasks...</p>
-            </div>
-          ) : tasks.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {tasks.map((task) => (
-                  <TaskCard
-                    key={(task as { _id: string })._id}
-                    task={task}
-                    onEdit={(t) => setEditingTask(t)}
-                    onDelete={handleDeleteTask}
-                  />
-                ))}
-              </div>
-              
-              {totalPages > 1 && (
-                <div className="mt-8 flex justify-center space-x-2">
-                  <button
-                    disabled={page === 1}
-                    onClick={() => setPage(p => p - 1)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-4 py-2 text-sm font-medium text-gray-700">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage(p => p + 1)}
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
+    return (
+        <div className="min-h-screen bg-[#333] text-white font-sans">
+            <nav className="bg-[#444] border-b border-[#555] py-4 px-6 sticky top-0 z-40">
+                <div className="max-w-7xl mx-auto flex justify-between items-center">
+                    <h1 className="text-xl font-black uppercase tracking-tighter text-indigo-400">
+                        Task Manager
+                    </h1>
+                    <button
+                        onClick={handleLogout}
+                        className="text-xs font-bold uppercase tracking-widest text-gray-400 hover:text-white transition-colors"
+                    >
+                        Logout
+                    </button>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
-              <p className="text-gray-500">No tasks found. Create your first task!</p>
-            </div>
-          )}
+            </nav>
+
+            <main className="max-w-7xl mx-auto py-8 px-6">
+                {/* Filters & Actions Bar */}
+                <div className="bg-[#444] p-4 rounded-lg border border-[#555] mb-8 space-y-4">
+                    <div className="flex flex-col lg:flex-row gap-4">
+                        <div className="flex-1">
+                            <input
+                                type="text"
+                                placeholder="Search by title..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                className="w-full bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                            />
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                            <select
+                                value={status}
+                                onChange={(e) => setStatus(e.target.value)}
+                                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                            >
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="in-progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                            <select
+                                value={priority}
+                                onChange={(e) => setPriority(e.target.value)}
+                                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                            >
+                                <option value="">All Priority</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white focus:border-indigo-500 outline-none"
+                            >
+                                <option value="createdAt">Sort by Date</option>
+                                <option value="dueDate">
+                                    Sort by Due Date
+                                </option>
+                                <option value="title">Sort by Title</option>
+                            </select>
+                            <button
+                                onClick={() =>
+                                    setSortOrder(
+                                        sortOrder === "asc" ? "desc" : "asc",
+                                    )
+                                }
+                                className="bg-[#333] border border-[#555] rounded py-2 px-3 text-sm text-white hover:bg-[#555] transition-colors"
+                            >
+                                {sortOrder === "asc" ? "↑" : "↓"}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex justify-end pt-2 border-t border-[#555]">
+                        <button
+                            onClick={() => setIsFormOpen(true)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase tracking-widest py-2.5 px-6 rounded shadow-sm transition-all"
+                        >
+                            Add New Task
+                        </button>
+                    </div>
+                </div>
+
+                {/* Task Form Modal */}
+                {(isFormOpen || editingTask) && (
+                    <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50 overflow-y-auto">
+                        <TaskForm
+                            initialData={editingTask || undefined}
+                            onSubmit={
+                                editingTask
+                                    ? handleUpdateTask
+                                    : handleCreateTask
+                            }
+                            onCancel={() => {
+                                setIsFormOpen(false);
+                                setEditingTask(null);
+                            }}
+                        />
+                    </div>
+                )}
+
+                {/* Tasks Grid */}
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <div className="text-indigo-400 font-bold uppercase animate-pulse">
+                            Loading Tasks...
+                        </div>
+                    </div>
+                ) : tasks.length > 0 ? (
+                    <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {tasks.map((task) => (
+                                <TaskCard
+                                    key={(task as { _id: string })._id}
+                                    task={task}
+                                    onEdit={(t) => setEditingTask(t)}
+                                    onDelete={handleDeleteTask}
+                                />
+                            ))}
+                        </div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="mt-12 flex justify-center items-center gap-4">
+                                <button
+                                    disabled={page === 1}
+                                    onClick={() => setPage((p) => p - 1)}
+                                    className="px-4 py-2 border border-[#555] rounded text-xs font-bold uppercase text-gray-400 hover:text-white hover:bg-[#444] disabled:opacity-30 transition-all"
+                                >
+                                    Prev
+                                </button>
+                                <span className="text-xs font-bold uppercase text-gray-500">
+                                    {page} / {totalPages}
+                                </span>
+                                <button
+                                    disabled={page === totalPages}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    className="px-4 py-2 border border-[#555] rounded text-xs font-bold uppercase text-gray-400 hover:text-white hover:bg-[#444] disabled:opacity-30 transition-all"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="text-center py-20 bg-[#444] rounded-lg border border-[#555]">
+                        <p className="text-gray-400 font-bold uppercase text-sm">
+                            No tasks found
+                        </p>
+                        <button
+                            onClick={() => setIsFormOpen(true)}
+                            className="mt-4 text-indigo-400 hover:text-indigo-300 font-bold uppercase text-xs"
+                        >
+                            Create your first task
+                        </button>
+                    </div>
+                )}
+            </main>
         </div>
-      </main>
-    </div>
-  );
+    );
 }
